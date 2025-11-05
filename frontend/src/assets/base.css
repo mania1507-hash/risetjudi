@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern Buttons dengan tema biru putih */
+.btn-primary {
+@apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-blue-300 backdrop-blur-sm;
+}
+
+.btn-secondary {
+@apply bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-600/80 hover:to-blue-700/80 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-blue-300 backdrop-blur-sm;
+}
+
+.btn-success {
+@apply bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-blue-300 backdrop-blur-sm;
+}
+
+.btn-danger {
+@apply bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-red-300 backdrop-blur-sm;
+}
+
+/* ===== TOMBOL TEKS, GAMBAR, VIDEO ===== */
+.btn-text {
+@apply bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-blue-300 backdrop-blur-sm flex items-center gap-2;
+}
+
+.btn-image {
+@apply bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-blue-200 backdrop-blur-sm flex items-center gap-2;
+}
+
+.btn-video {
+@apply bg-gradient-to-r from-blue-300 to-blue-400 hover:from-blue-400 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-blue-200 backdrop-blur-sm flex items-center gap-2;
+}
+
+/* Icon untuk tombol */
+.btn-text::before {
+content: "📝";
+@apply text-lg;
+}
+
+.btn-image::before {
+content: "🖼️";
+@apply text-lg;
+}
+
+.btn-video::before {
+content: "🎬";
+@apply text-lg;
+}
+
+/* ===== INPUT TEKS, GAMBAR, VIDEO ===== */
+/* Input Teks Modern */
+.input-text {
+@apply bg-gradient-to-r from-blue-50 to-blue-100 backdrop-blur-md border-2 border-blue-200 rounded-xl px-4 py-3 text-blue-900 placeholder-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all duration-300 w-full;
+}
+
+/* Container Input Gambar */
+.input-image-container {
+@apply bg-gradient-to-r from-blue-50 to-blue-100 backdrop-blur-md border-2 border-blue-200 rounded-xl p-4 transition-all duration-300 hover:border-blue-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-300;
+}
+
+.input-image {
+@apply w-full text-blue-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-blue-500 file:to-blue-600 file:text-white hover:file:from-blue-600 hover:file:to-blue-700 transition-all duration-300;
+}
+
+/* Container Input Video */
+.input-video-container {
+@apply bg-gradient-to-r from-blue-50 to-blue-100 backdrop-blur-md border-2 border-blue-200 rounded-xl p-4 transition-all duration-300 hover:border-blue-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-300;
+}
+
+.input-video {
+@apply w-full text-blue-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-blue-400 file:to-blue-500 file:text-white hover:file:from-blue-500 hover:file:to-blue-600 transition-all duration-300;
+}
+
+/* Input Modern dengan tema biru putih */
+.input-modern {
+@apply bg-white/20 backdrop-blur-md border border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-all duration-300;
+}
+
+/* Cards Modern dengan glass effect biru */
+.card-modern {
+@apply bg-blue-500/10 backdrop-blur-md border border-blue-300/30 rounded-2xl p-6 shadow-xl;
+}
+
+/* Text Gradients biru */
+.text-gradient-modern {
+background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+/* Glass effect utility biru */
+.glass-effect {
+@apply bg-blue-500/10 backdrop-blur-md border border-blue-300/30;
+}
+
+/* Custom background colors */
+.bg-blue-glass {
+@apply bg-blue-500/10 backdrop-blur-md border border-blue-300/30;
+}
+
+.bg-white-glass {
+@apply bg-white/20 backdrop-blur-md border border-white/30;
+}
+
+/* Label untuk input */
+.input-label {
+@apply block text-sm font-semibold text-blue-900 mb-2;
+}
+
+/* Helper text untuk input */
+.input-helper {
+@apply text-xs text-blue-500 mt-1;
+}
+
+/* State disabled untuk semua elemen */
+.btn-text:disabled,
+.btn-image:disabled,
+.btn-video:disabled,
+.input-text:disabled,
+.input-image:disabled,
+.input-video:disabled {
+@apply opacity-50 cursor-not-allowed transform-none hover:scale-100;
+}
+
+/* Focus states untuk aksesibilitas */
+.btn-text:focus,
+.btn-image:focus,
+.btn-video:focus {
+@apply outline-none ring-2 ring-blue-300 ring-opacity-50;
+}
+
+/* Animation untuk loading state */
+.btn-loading {
+@apply relative overflow-hidden;
+}
+
+.btn-loading::after {
+content: "";
+@apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shine;
+}
+
+@keyframes shine {
+0% { transform: translateX(-100%) skewX(-12deg); }
+100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+.animate-shine {
+animation: shine 1.5s infinite;
+}
+

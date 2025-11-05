@@ -1,0 +1,13 @@
+# === Python / Flask ===
+__pycache__/
+*.py[cod]
+venv/
+instance/
+.env
+.venv/
+
+# === Node / Vue ===
+node_modules/
+dist/
+*.local
+.vite/
