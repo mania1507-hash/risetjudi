@@ -12,7 +12,10 @@ import os
 import cv2
 import easyocr
 import pytesseract
-
+from tensorflow.keras.preprocessing.sequence import pad_sequences  # Jangan lupa import ini
+import yt_dlp
+import subprocess
+import json
 
 warnings.filterwarnings("ignore")
 reader = easyocr.Reader(['en'])
@@ -34,15 +37,6 @@ if os.path.exists(TOKENIZER_PATH):
         print("✅ Tokenizer loaded successfully.")
 else:
     print("⚠️ Tokenizer file not found, using None.")
-
-# ====== Load Model (jika ada) ======
-model = None
-if os.path.exists(MODEL_PATH):
-    model = tf.keras.models.load_model(MODEL_PATH)
-    print("✅ Model loaded successfully.")
-else:
-    print("⚠️ Model file not found, using dummy mode.")
-
 
 # ====== Load Model (jika ada) ======
 model = None
@@ -138,10 +132,289 @@ def preprocess_text(text, maxlen=200):
     padded = pad_sequences(seq, maxlen=maxlen, padding='post', truncating='post')
     return padded
 
+# ====== Fungsi untuk Download & Ekstrak Info YouTube ======
+def download_youtube_video(youtube_url, max_duration=300):
+    """
+    Download video YouTube dengan durasi maksimal 5 menit
+    """
+    try:
+        # Konfigurasi yt-dlp
+        ydl_opts = {
+            'format': 'best[height<=720]',  # Maksimal 720p
+            'outtmpl': tempfile.gettempdir() + '/%(id)s.%(ext)s',
+            'quiet': True,
+            'no_warnings': True,
+            'noplaylist': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Dapatkan info video
+            info = ydl.extract_info(youtube_url, download=False)
+            video_id = info.get('id', 'unknown')
+            video_title = info.get('title', '')
+            video_duration = info.get('duration', 0)
+            
+            # Jika video terlalu panjang, batasi durasi
+            if video_duration > max_duration:
+                ydl_opts['postprocessors'] = [{
+                    'key': 'FFmpegVideoConvertor',
+                    'preferedformat': 'mp4',
+                }]
+                ydl_opts['match_filter'] = yt_dlp.utils.match_filter_func(f"duration<={max_duration}")
+            
+            # Download video
+            ydl.download([youtube_url])
+            
+            video_path = os.path.join(tempfile.gettempdir(), f"{video_id}.mp4")
+            
+            # Cek jika file berhasil didownload
+            if os.path.exists(video_path):
+                return video_path, video_title, video_duration
+            else:
+                # Cek ekstensi lain
+                for ext in ['mp4', 'webm', 'mkv']:
+                    alt_path = os.path.join(tempfile.gettempdir(), f"{video_id}.{ext}")
+                    if os.path.exists(alt_path):
+                        return alt_path, video_title, video_duration
+                
+                return None, video_title, video_duration
+                
+    except Exception as e:
+        print(f"Error downloading YouTube video: {e}")
+        return None, "", 0
+
+def extract_youtube_metadata(youtube_url):
+    """
+    Ekstrak metadata dari video YouTube
+    """
+    try:
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'skip_download': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(youtube_url, download=False)
+            
+            return {
+                'title': info.get('title', ''),
+                'description': info.get('description', ''),
+                'duration': info.get('duration', 0),
+                'view_count': info.get('view_count', 0),
+                'uploader': info.get('uploader', ''),
+                'upload_date': info.get('upload_date', ''),
+                'tags': info.get('tags', []),
+                'categories': info.get('categories', [])
+            }
+    except Exception as e:
+        print(f"Error extracting YouTube metadata: {e}")
+        return {}
+
 # ====== Endpoint Utama ======
 @app.route('/')
 def index():
     return jsonify({'message': 'API Deteksi Iklan Judi Online aktif.'})
+
+# ====== Endpoint Deteksi YouTube ======
+@app.route('/api/detect-youtube', methods=['POST'])
+def detect_youtube():
+    try:
+        data = request.get_json()
+        youtube_url = data.get('youtube_url', '').strip()
+        
+        if not youtube_url:
+            return jsonify({'success': False, 'error': 'URL YouTube tidak boleh kosong.'}), 400
+
+        # Validasi URL YouTube
+        youtube_pattern = r'^(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]{11})(\S*)?$'
+        if not re.match(youtube_pattern, youtube_url):
+            return jsonify({'success': False, 'error': 'URL YouTube tidak valid.'}), 400
+
+        print(f"🔍 Memproses URL YouTube: {youtube_url}")
+
+        # ====== 1. Ekstrak Metadata YouTube ======
+        metadata = extract_youtube_metadata(youtube_url)
+        title = metadata.get('title', '')
+        description = metadata.get('description', '')
+        tags = metadata.get('tags', [])
+        
+        # Gabungkan metadata untuk analisis
+        metadata_text = f"{title} {description} {' '.join(tags)}"
+        
+        # ====== 2. Analisis Metadata ======
+        metadata_keywords = find_gambling_keywords_in_text(metadata_text)
+        metadata_keyword_count = len(metadata_keywords)
+        
+        # ====== 3. Download Video (maksimal 5 menit) ======
+        video_path, video_title, video_duration = download_youtube_video(youtube_url)
+        
+        if not video_path:
+            # Jika download gagal, gunakan metadata saja
+            confidence = calculate_confidence_based_on_keywords(metadata_keyword_count)
+            status = 'Terindikasi Iklan Judi' if metadata_keyword_count > 0 else 'Tidak Terindikasi Iklan Judi'
+            
+            return jsonify({
+                'success': True,
+                'youtube_url': youtube_url,
+                'status': status,
+                'confidence': f'{confidence * 100:.2f}%',
+                'raw_confidence': confidence,
+                'gambling_keywords': metadata_keywords,
+                'keyword_count': metadata_keyword_count,
+                'video_title': title,
+                'video_duration': video_duration,
+                'method': 'metadata_analysis_only',
+                'note': 'Video tidak dapat diunduh, analisis berdasarkan metadata saja'
+            })
+
+        # ====== 4. Proses Video (OCR + Audio) ======
+        try:
+            # Ekstrak audio dari video
+            audio_path = tempfile.NamedTemporaryFile(delete=False, suffix='.wav').name
+            try:
+                from moviepy.editor import VideoFileClip
+                clip = VideoFileClip(video_path)
+                clip.audio.write_audiofile(audio_path, codec='pcm_s16le')
+                clip.close()
+            except Exception as e:
+                print(f"Audio extraction error: {e}")
+                audio_path = None
+
+            # Speech-to-text
+            audio_text = ""
+            if audio_path and os.path.exists(audio_path):
+                try:
+                    import speech_recognition as sr
+                    recognizer = sr.Recognizer()
+                    with sr.AudioFile(audio_path) as source:
+                        audio_data = recognizer.record(source)
+                        audio_text = recognizer.recognize_google(audio_data, language="id-ID")
+                    print(f"Audio transcription: {audio_text[:200]}...")
+                except Exception as e:
+                    print(f"Speech recognition error: {e}")
+
+            # OCR dari frame video
+            cap = cv2.VideoCapture(video_path)
+            frame_count = 0
+            all_ocr_texts = []
+            max_frames = 30
+            frame_interval = 3
+
+            try:
+                while cap.isOpened() and frame_count < max_frames:
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+
+                    if frame_count % frame_interval == 0: 
+                        try:
+                            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                            denoised = cv2.medianBlur(gray, 3)
+                            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+                            enhanced = clahe.apply(denoised)
+                            _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                            
+                            height, width = thresh.shape
+                            if width > 1200:
+                                scale = 1200 / width
+                                resized = cv2.resize(thresh, (1200, int(height * scale)), interpolation=cv2.INTER_CUBIC)
+                            else:
+                                resized = thresh
+                            
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_frame:
+                                frame_path = temp_frame.name
+                                cv2.imwrite(frame_path, resized)
+
+                            ocr_results = []
+                            try:
+                                ocr_results.extend(reader.readtext(frame_path, detail=0, paragraph=True))
+                            except:
+                                pass
+                            try:
+                                result3 = pytesseract.image_to_string(frame_path, config='--psm 6')
+                                if result3.strip():
+                                    ocr_results.append(result3)
+                            except:
+                                pass
+
+                            combined_text = ' '.join(ocr_results)
+                            cleaned_text = re.sub(r'\s+', ' ', combined_text).strip()
+                            if cleaned_text:
+                                all_ocr_texts.append(cleaned_text)
+                            
+                            os.remove(frame_path)
+                        except Exception as e:
+                            print(f"OCR error at frame {frame_count}: {e}")
+
+                    frame_count += 1
+
+            finally:
+                cap.release()
+
+            combined_ocr_text = ' | '.join(all_ocr_texts)
+
+            # ====== 5. Gabungkan semua teks untuk analisis ======
+            all_text = f"{metadata_text} {combined_ocr_text} {audio_text}"
+            
+            # ====== 6. Analisis akhir ======
+            all_keywords = find_gambling_keywords_in_text(all_text)
+            all_keyword_count = len(all_keywords)
+            
+            # Gabungkan keyword dari metadata dan video
+            combined_keywords = list(set(metadata_keywords + all_keywords))
+            combined_keyword_count = len(combined_keywords)
+
+            if combined_keyword_count > 0:
+                confidence = calculate_confidence_based_on_keywords(combined_keyword_count)
+                status = 'Terindikasi Iklan Judi'
+            else:
+                processed = preprocess_text(all_text)
+                if model:
+                    confidence = float(model.predict(processed, verbose=0)[0][0])
+                    status = 'Terindikasi Iklan Judi' if confidence > 0.3 else 'Tidak Terindikasi Iklan Judi'
+                else:
+                    confidence = 0.0
+                    status = 'Tidak Terindikasi Iklan Judi'
+
+            result = {
+                'success': True,
+                'youtube_url': youtube_url,
+                'status': status,
+                'confidence': f'{confidence * 100:.2f}%',
+                'raw_confidence': float(confidence),
+                'gambling_keywords': combined_keywords,
+                'keyword_count': combined_keyword_count,
+                'video_title': title,
+                'video_duration': video_duration,
+                'video_metadata_analysis': {
+                    'title_keywords': find_gambling_keywords_in_text(title),
+                    'description_keywords': find_gambling_keywords_in_text(description),
+                    'tags_keywords': find_gambling_keywords_in_text(' '.join(tags))
+                },
+                'video_content_analysis': {
+                    'ocr_text_samples': combined_ocr_text[:500],
+                    'audio_transcript': audio_text[:500],
+                    'frames_processed': frame_count
+                },
+                'method': 'full_video_analysis'
+            }
+
+            return jsonify(result)
+
+        finally:
+            # Cleanup
+            if os.path.exists(video_path):
+                os.remove(video_path)
+            if audio_path and os.path.exists(audio_path):
+                os.remove(audio_path)
+
+    except Exception as e:
+        print(f"Error in YouTube detection: {e}")
+        return jsonify({
+            'success': False, 
+            'error': f'Gagal memproses video YouTube: {str(e)}'
+        }), 500
 
 # ====== Endpoint Deteksi Berdasarkan Teks ======
 @app.route('/api/detect-text', methods=['POST'])
