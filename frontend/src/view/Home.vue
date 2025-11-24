@@ -4,7 +4,7 @@ import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 
 // ===== Base URL Backend Flask =====
-const BASE_URL = "http://127.0.0.1:5000"
+const BASE_URL = "https://nonsinkable-ulnar-staci.ngrok-free.dev"
 
 // ===== State =====
 const selectedInputType = ref('text')

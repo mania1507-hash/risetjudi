@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 import requests
 import tempfile
@@ -84,7 +84,7 @@ def find_gambling_keywords_in_text(text):
     gambling_keywords = [
         "judi", "slot", "gacor", "jackpot", "bet", "maxwin", "bo", "rtp",
         "casino", "toto", "qq", "poker", "bola", "parlay", "scatter",
-        "bonus", "spin", "deposit", "wd", "situs", "bonus",
+        "bonus", "spin", "deposit", "wd", "situs", "bonus", "mahjong", "pola", "win", "scatter", "slotmachine", "tembus"
         "betting", "angka", "bandar", "slot gacor", "demo slot pg",
         "judol", "yoktogel", "nanastoto", "partaitogel", "mariatogel"
     ]
@@ -214,7 +214,8 @@ def extract_youtube_metadata(youtube_url):
 # ====== Endpoint Utama ======
 @app.route('/')
 def index():
-    return jsonify({'message': 'API Deteksi Iklan Judi Online aktif.'})
+    """Redirect ke frontend Vue.js"""
+    return redirect('https://nonsinkable-ulnar-staci.ngrok-free.dev', code=302)
 
 # ====== Endpoint Deteksi YouTube ======
 @app.route('/api/detect-youtube', methods=['POST'])
@@ -298,8 +299,8 @@ def detect_youtube():
             cap = cv2.VideoCapture(video_path)
             frame_count = 0
             all_ocr_texts = []
-            max_frames = 30
-            frame_interval = 3
+            max_frames = 50
+            frame_interval = 5
 
             try:
                 while cap.isOpened() and frame_count < max_frames:

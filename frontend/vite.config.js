@@ -11,6 +11,9 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
+    allowedHosts: ['nonsinkable-ulnar-staci.ngrok-free.dev'],
+
     proxy: {
       '/api': {
         target: 'https://api.perkakas-ai.web.id',
